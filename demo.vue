@@ -1,152 +1,193 @@
 <template>
-  <v-container>
-    <v-sax-table :headers="headers" :items="items">
-      <template v-slot:item.WorkingDay="{ item }">
-        <label>{{ item.WorkingDay }}</label>
-      </template>
-      <template v-slot:item.SaleAmount="{ item }">
-        <div :style="{ backgroundColor: item === selectedRow ? 'yellow' : 'white' }">
-          <v-text-field
-            v-if="item.editingSaleAmount"
-            v-model="item.SaleAmount"
-            @focusout="finishEditing(item, 'SaleAmount')"
-            @keyup.enter="moveFocus(item, 'SaleAmount')"
-            hide-details
-            solo
-          ></v-text-field>
-          <label v-else @click="editField(item, 'SaleAmount')">{{ item.SaleAmount }}</label>
-        </div>
-      </template>
-      <template v-slot:item.CustomerCount="{ item }">
-        <div :style="{ backgroundColor: item === selectedRow ? 'yellow' : 'white' }">
-          <v-text-field
-            v-if="item.editingCustomerCount"
-            v-model="item.CustomerCount"
-            @focusout="finishEditing(item, 'CustomerCount')"
-            @keyup.enter="moveFocus(item, 'CustomerCount')"
-            hide-details
-            solo
-          ></v-text-field>
-          <label v-else @click="editField(item, 'CustomerCount')">{{ item.CustomerCount }}</label>
-        </div>
-      </template>
-    </v-sax-table>
-  </v-container>
-</template>
-
-<script>
-export default {
-  data() {
-    return {
-      headers: [
-        { text: 'Working Day', value: 'WorkingDay' },
-        { text: 'Sale Amount', value: 'SaleAmount' },
-        { text: 'Customer Count', value: 'CustomerCount' }
-      ],
-      items: [
-        {
-          WorkingDay: 'Monday',
-          SaleAmount: 100,
-          CustomerCount: 10,
-          editingSaleAmount: false,
-          editingCustomerCount: false
-        },
-        {
-          WorkingDay: 'Tuesday',
-          SaleAmount: 150,
-          CustomerCount: 15,
-          editingSaleAmount: false,
-          editingCustomerCount: false
-        }
-        // 更多数据
-      ],
-      selectedRow: null
-    }
-  },
-  methods: {
-    editField(item, field) {
-      this.resetEditing()
-      this.selectedRow = item
-      item[`editing${field}`] = true
-    },
-    finishEditing(item, field) {
-      item[`editing${field}`] = false
-    },
-    moveFocus(item, field) {
-      if (field === 'SaleAmount') {
-        item.editingSaleAmount = false
-        item.editingCustomerCount = true
-      } else if (field === 'CustomerCount') {
-        item.editingCustomerCount = false
-        const nextIndex = this.items.indexOf(item) + 1
-        if (nextIndex < this.items.length) {
-          this.selectedRow = this.items[nextIndex]
-          this.items[nextIndex].editingSaleAmount = true
-        } else {
-          this.addItem()
-        }
+    <v-container>
+      <v-data-table
+        :headers="headers"
+        :items="items"
+        class="elevation-1"
+      >
+        <template v-slot:item="{ item, index }">
+          <tr
+            :class="{
+              'highlight-row': selectedRow === index && !item.deleted,
+              'deleted-row': item.deleted,
+              'deleted-highlight-row': selectedRow === index && item.deleted
+            }"
+            @click="selectRow(index)"
+          >
+            <td>
+              <v-text-field
+                v-if="item.editing && currentField === 'WorkingDate' && currentItem === index"
+                v-model="item.WorkingDate"
+                @blur="finishEditing(item, 'WorkingDate')"
+                @keyup.enter="moveFocus(item, 'WorkingDate')"
+                ref="WorkingDate"
+                hide-details
+                solo
+              ></v-text-field>
+              <span v-else @click="editField(item, index, 'WorkingDate')">{{ item.WorkingDate }}</span>
+            </td>
+            <td>
+              <v-text-field
+                v-if="item.editing && currentField === 'LastSaleAmount' && currentItem === index"
+                v-model="item.LastSaleAmount"
+                @blur="finishEditing(item, 'LastSaleAmount')"
+                @keyup.enter="moveFocus(item, 'LastSaleAmount')"
+                ref="LastSaleAmount"
+                hide-details
+                solo
+              ></v-text-field>
+              <span v-else @click="editField(item, index, 'LastSaleAmount')">{{ item.LastSaleAmount }}</span>
+            </td>
+            <td>
+              <v-text-field
+                v-if="item.editing && currentField === 'LastSaleNumbers' && currentItem === index"
+                v-model="item.LastSaleNumbers"
+                @blur="finishEditing(item, 'LastSaleNumbers')"
+                @keyup.enter="moveFocus(item, 'LastSaleNumbers')"
+                ref="LastSaleNumbers"
+                hide-details
+                solo
+              ></v-text-field>
+              <span v-else @click="editField(item, index, 'LastSaleNumbers')">{{ item.LastSaleNumbers }}</span>
+            </td>
+            <td>
+              <v-text-field
+                v-if="item.editing && currentField === 'SaleAmount' && currentItem === index"
+                v-model="item.SaleAmount"
+                @blur="finishEditing(item, 'SaleAmount')"
+                @keyup.enter="moveFocus(item, 'SaleAmount')"
+                ref="SaleAmount"
+                hide-details
+                solo
+              ></v-text-field>
+              <span v-else @click="editField(item, index, 'SaleAmount')">{{ item.SaleAmount }}</span>
+            </td>
+            <td>
+              <v-text-field
+                v-if="item.editing && currentField === 'SaleNumbers' && currentItem === index"
+                v-model="item.SaleNumbers"
+                @blur="finishEditing(item, 'SaleNumbers')"
+                @keyup.enter="moveFocus(item, 'SaleNumbers')"
+                ref="SaleNumbers"
+                hide-details
+                solo
+              ></v-text-field>
+              <span v-else @click="editField(item, index, 'SaleNumbers')">{{ item.SaleNumbers }}</span>
+            </td>
+          </tr>
+        </template>
+      </v-data-table>
+    </v-container>
+  </template>
+  
+  <script>
+  export default {
+    props: {
+      items: {
+        type: Array,
+        required: true
       }
     },
-    addItem() {
-      const newItem = {
-        WorkingDay: '',
-        SaleAmount: 0,
-        CustomerCount: 0,
-        editingSaleAmount: true,
-        editingCustomerCount: false,
-        NewLine: true
-      }
-      this.items.push(newItem)
-      this.selectedRow = newItem
-    },
-    resetEditing() {
-      this.items.forEach((item) => {
-        item.editingSaleAmount = false
-        item.editingCustomerCount = false
-      })
-    },
-    deleteRow(event) {
-      if (event && event.key === 'Delete') {
-        if (this.selectedRow) {
-          this.selectedRow.disabled = true; // 禁用选中行
-          this.selectedRow = null; // 清空选中行
-        }
+    data() {
+      return {
+        headers: [
+          { text: 'Working Date', value: 'WorkingDate' },
+          { text: 'Last Sale Amount', value: 'LastSaleAmount' },
+          { text: 'Last Sale Numbers', value: 'LastSaleNumbers' },
+          { text: 'Sale Amount', value: 'SaleAmount' },
+          { text: 'Sale Numbers', value: 'SaleNumbers' }
+        ],
+        currentItem: null,
+        currentField: '',
+        selectedRow: null
       }
     },
-    moveFocusNext(event) {
-      if (this.selectedRowIndex !== null && this.selectedColIndex !== null) {
-        event.preventDefault(); // 阻止默认的回车行为
-        if (this.selectedColIndex === this.headers.length - 1) { // 如果是最后一列
-          if (this.selectedRowIndex < this.items.length - 1) { // 如果不是最后一行
-            this.selectedRowIndex++;
-            this.selectedColIndex = 0; // 切换到下一行的第一列
+    methods: {
+      selectRow(index) {
+        this.selectedRow = index;
+      },
+      editField(item, index, field) {
+        if (item.deleted) return; // Prevent editing deleted rows
+        this.resetEditing();
+        this.currentItem = index;
+        this.currentField = field;
+        item.editing = true;
+        this.$nextTick(() => {
+          const input = this.$refs[field][index];
+          if (input) {
+            input.focus();
+            input.select();
           }
-        } else { // 不是最后一列
-          this.selectedColIndex++; // 切换到下一列
-        }
-        // 根据新的选中行和列进行处理，比如编辑字段或者设置焦点等
-        his.handleSelectedCell();
-      }
-    },    
-    handleClickNewRow() {
-      // 将新行的背景色设为黄色，其他行恢复默认
-      this.items.forEach((item, index) => {
-        if (index === this.selectedRowIndex) {
-          // 设置新行的背景色为黄色
-          item.backgroundColor = 'yellow';
+        });
+      },
+      finishEditing(item, field) {
+        item.editing = false;
+      },
+      moveFocus(item, field) {
+        const fields = ['WorkingDate', 'LastSaleAmount', 'LastSaleNumbers', 'SaleAmount', 'SaleNumbers'];
+        let currentIndex = fields.indexOf(field);
+        if (currentIndex < fields.length - 1) {
+          this.finishEditing(item, field);
+          this.editField(item, this.currentItem, fields[currentIndex + 1]);
         } else {
-          // 其他行恢复默认背景色
-          item.backgroundColor = 'white';
+          const currentIndexInItems = this.currentItem;
+          if (currentIndexInItems < this.items.length - 1) {
+            this.finishEditing(item, field);
+            this.editField(this.items[currentIndexInItems + 1], currentIndexInItems + 1, fields[0]);
+          } else {
+            this.addNewRow();
+          }
         }
-      });
+      },
+      addNewRow() {
+        const newItem = {
+          WorkingDate: '',
+          LastSaleAmount: '',
+          LastSaleNumbers: '',
+          SaleAmount: '',
+          SaleNumbers: '',
+          editing: false,
+          deleted: false
+        };
+        this.items.push(newItem);
+        this.$nextTick(() => {
+          const newIndex = this.items.length - 1;
+          this.editField(newItem, newIndex, 'WorkingDate');
+          this.selectRow(newIndex);  // Select the new row and highlight it
+        });
+      },
+      resetEditing() {
+        this.items.forEach(item => {
+          item.editing = false;
+        });
+        this.currentItem = null;
+        this.currentField = '';
+      },
+      handleKeyDown(event) {
+        if (event.key === 'Delete' && this.selectedRow !== null) {
+          this.items[this.selectedRow].deleted = true;
+          this.selectedRow = null;
+        }
+      }
     },
-    handleSelectedCell() {
-      // 根据选中行和列处理对应的操作，比如编辑字段或者设置焦点等
+    mounted() {
+      window.addEventListener('keydown', this.handleKeyDown);
+    },
+    beforeDestroy() {
+      window.removeEventListener('keydown', this.handleKeyDown);
     }
   }
-}
-</script>
-
-<style>
-/* 这里可以添加额外的样式 */
-</style>
+  </script>
+  
+  <style scoped>
+  .highlight-row {
+    background-color: yellow;
+  }
+  .deleted-row {
+    background-color: gray;
+  }
+  .deleted-highlight-row {
+    background-color: lightgray;
+  }
+  </style>
+  
